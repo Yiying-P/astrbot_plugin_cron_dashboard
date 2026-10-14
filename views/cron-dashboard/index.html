@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cron Dashboard</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon">🕐</div>
+        <div>
+          <h1>定时任务看板</h1>
+          <span class="sub">Cron Dashboard · AstrBot 定时任务可视化</span>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btn-new" class="btn btn-primary">＋ 新建任务</button>
+        <button id="btn-refresh" class="btn btn-ghost">⟳ 刷新</button>
+      </div>
+    </header>
+
+    <section id="stats" class="stats"></section>
+
+    <section class="charts">
+      <div class="card">
+        <div class="card-head"><h2>任务状态分布</h2></div>
+        <div class="chart-row">
+          <svg id="donut" viewBox="0 0 200 200" width="180" height="180" role="img" aria-label="任务状态分布环形图"></svg>
+          <div id="donut-legend" class="legend"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>今日执行概览</h2><span id="today-total" class="badge">0 次</span></div>
+        <div id="today-bars" class="today-bars"></div>
+        <p class="hint" id="today-hint">按小时统计今日 basic 任务执行情况（执行日志）</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>任务列表 <span id="job-count" class="badge">0</span></h2>
+        <div class="filters">
+          <input id="search" type="search" placeholder="搜索名称 / 描述 / ID" />
+          <select id="filter-type" title="按类型筛选">
+            <option value="">全部类型</option>
+            <option value="basic">basic</option>
+            <option value="active_agent">active_agent</option>
+          </select>
+          <select id="filter-status" title="按状态筛选">
+            <option value="">全部状态</option>
+            <option value="scheduled">scheduled</option>
+            <option value="running">running</option>
+            <option value="completed">completed</option>
+            <option value="failed">failed</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="job-table">
+          <thead>
+            <tr>
+              <th>名称</th>
+              <th>类型</th>
+              <th>触发器</th>
+              <th>状态</th>
+              <th>上次运行</th>
+              <th>下次运行</th>
+              <th class="col-ops">操作</th>
+            </tr>
+          </thead>
+          <tbody id="job-tbody"></tbody>
+        </table>
+      </div>
+      <div id="empty" class="empty" hidden>暂无定时任务，点击右上角「＋ 新建任务」创建第一个任务。</div>
+      <p class="hint" id="table-hint">提示：删除任务不可恢复；「立即运行」会绕过调度直接执行一次。</p>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>执行日志 <span id="log-count" class="badge">0</span></h2>
+        <button id="btn-clear-logs" class="btn btn-ghost btn-sm" title="清空内存中的日志展示">清空展示</button>
+      </div>
+      <div id="logs" class="logs"></div>
+      <p class="hint">最近 50 条 basic 任务执行记录，持久化于插件数据目录。</p>
+    </section>
+
+    <!-- 新建 / 编辑任务模态框 -->
+    <div id="modal" class="modal" hidden>
+      <div class="modal-box">
+        <div class="modal-head">
+          <h2 id="modal-title">新建任务</h2>
+          <button class="modal-close" data-action="close">×</button>
+        </div>
+        <form id="job-form" class="modal-body" novalidate>
+          <input type="hidden" id="f-job-id" />
+          <div class="field">
+            <label for="f-name">任务名称 <em>*</em></label>
+            <input id="f-name" type="text" required placeholder="例如：每日科技简报" />
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="f-type">任务类型</label>
+              <select id="f-type">
+                <option value="basic">basic（内置执行器）</option>
+                <option value="active_agent">active_agent（AI 主动任务）</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-enabled">是否启用</label>
+              <select id="f-enabled">
+                <option value="true">启用</option>
+                <option value="false">停用</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="f-cron">Cron 表达式 <em>*</em></label>
+            <input id="f-cron" type="text" required placeholder="5 段式，例如：0 9 * * *" />
+            <p class="hint">分 时 日 月 周，例如「0 9 * * *」表示每天 09:00。</p>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="f-timezone">时区</label>
+              <input id="f-timezone" type="text" placeholder="Asia/Shanghai" />
+            </div>
+            <div class="field">
+              <label for="f-description">描述</label>
+              <input id="f-description" type="text" placeholder="可选" />
+            </div>
+          </div>
+
+          <div id="basic-fields">
+            <div class="field">
+              <label for="f-handler">执行器</label>
+              <select id="f-handler"></select>
+              <p class="hint" id="handler-desc"></p>
+            </div>
+            <div id="handler-params"></div>
+          </div>
+
+          <div id="agent-fields" class="field" hidden>
+            <label for="f-payload">任务参数（JSON）</label>
+            <textarea id="f-payload" rows="5" spellcheck="false"></textarea>
+            <p class="hint">active_agent 支持字段：<code>session</code>（结果回传会话）、<code>note</code>（任务说明）。示例：{"session": "aiocqhttp:group_message:123456789", "note": "请汇总今日新闻"}</p>
+          </div>
+
+          <div class="modal-foot">
+            <button type="button" class="btn btn-ghost" data-action="close">取消</button>
+            <button type="submit" class="btn btn-primary">保存</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
