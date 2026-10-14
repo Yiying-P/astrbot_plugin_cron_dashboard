@@ -1,0 +1,12 @@
+{
+  "log_max_records": {
+    "description": "执行日志在内存中保留的最大条数（超出后写入文件并截断）",
+    "type": "int",
+    "default": 1000
+  },
+  "default_timezone": {
+    "description": "新建定时任务时默认使用的时区（IANA 时区名）",
+    "type": "string",
+    "default": "Asia/Shanghai"
+  }
+}

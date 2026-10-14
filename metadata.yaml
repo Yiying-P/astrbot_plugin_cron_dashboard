@@ -1,0 +1,23 @@
+name: astrbot_plugin_cron_dashboard
+display_name: Cron Dashboard 定时任务看板
+desc: 在 AstrBot WebUI 中可视化查看和管理定时任务，支持任务统计、启停、立即运行、新建（内置定时发消息与 HTTP Webhook 执行器）以及执行日志。
+short_desc: 定时任务可视化看板：统计、管理、执行日志一屏搞定。
+version: v1.0.0
+author: Yiying-P
+repo: https://github.com/Yiying-P/astrbot_plugin_cron_dashboard
+support_platforms:
+  - aiocqhttp
+  - qq_official
+  - telegram
+  - wecom
+  - lark
+  - dingtalk
+  - discord
+  - slack
+  - kook
+  - vocechat
+  - weixin_official_account
+  - satori
+  - misskey
+  - line
+astrbot_version: ">=4.16,<5"
